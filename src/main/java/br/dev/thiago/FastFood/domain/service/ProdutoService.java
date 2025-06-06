@@ -11,25 +11,30 @@ import org.springframework.stereotype.Service;
 public class ProdutoService {
 
     @Autowired
-    private ProdutoRepository produtoRepository;
+    ProdutoRepository produtoRepo;
 
-    public List<Produto> listarTodos() {
-        return produtoRepository.findAll();
+    public boolean existsById(Long id) {
+        return produtoRepo.existsById(id);
     }
 
-    public Optional<Produto> buscarPorId(Long id) {
-        return produtoRepository.findById(id);
+    public Optional<Produto> findById(Long id) {
+        return produtoRepo.findById(id);
     }
 
-    public Produto salvar(Produto produto) {
-        return produtoRepository.save(produto);
+    public List<Produto> listarProdutos() {
+        return (List<Produto>) produtoRepo.findAll();
     }
 
-    public void deletar(Long id) {
-        produtoRepository.deleteById(id);
+    public List<Produto> listByCategoria(String categoria) {
+        return produtoRepo.findByCategoria(categoria);
     }
 
-    public List<Produto> buscarPorCategoria(String categoria) {
-        return produtoRepository.findByCategoriaIgnoreCase(categoria);
+    public Produto salvarProduto(Produto produto) {
+        return produtoRepo.save(produto);
     }
+
+    public void deletarProduto(Long id) {
+        produtoRepo.deleteById(id);
+    }
+
 }

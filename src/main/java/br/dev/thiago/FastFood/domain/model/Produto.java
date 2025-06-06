@@ -1,31 +1,47 @@
 package br.dev.thiago.FastFood.domain.model;
 
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import java.math.BigDecimal;
 
 
 @Entity
-@Table(name = "produto")
+@Table(name = "produtos")
 public class Produto {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @NotBlank
+    @Column(nullable = false)
     private String nome;
-    private Double preco;
+
+    @NotBlank
+    @Column(nullable = false)
     private String categoria;
+
+    @NotBlank
+    @Column(nullable = false)
+    private String descricao;
+
+    @NotNull
+    @Column(nullable = false)
+    private BigDecimal preco;
 
     public Produto() {}
 
-    public Produto(Long id, String nome, Double preco, String categoria) {
-        this.id = id;
+    public Produto(String nome, String categoria, String descricao, BigDecimal preco) {
         this.nome = nome;
-        this.preco = preco;
         this.categoria = categoria;
+        this.descricao = descricao;
+        this.preco = preco;
     }
 
     public Long getId() {
@@ -44,14 +60,6 @@ public class Produto {
         this.nome = nome;
     }
 
-    public Double getPreco() {
-        return preco;
-    }
-
-    public void setPreco(Double preco) {
-        this.preco = preco;
-    }
-
     public String getCategoria() {
         return categoria;
     }
@@ -60,16 +68,21 @@ public class Produto {
         this.categoria = categoria;
     }
 
-    @Override
-    public boolean equals(Object obj) {
-        if (this == obj) return true;
-        if (obj == null || getClass() != obj.getClass()) return false;
-        Produto other = (Produto) obj;
-        return java.util.Objects.equals(id, other.id);
+    public String getDescricao() {
+        return descricao;
     }
 
-    @Override
-    public int hashCode() {
-        return java.util.Objects.hash(id);
+    public void setDescricao(String descricao) {
+        this.descricao = descricao;
     }
+
+    public BigDecimal getPreco() {
+        return preco;
+    }
+
+    public void setPreco(BigDecimal preco) {
+        this.preco = preco;
+    }
+
+    
 }
