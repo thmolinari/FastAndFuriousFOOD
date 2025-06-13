@@ -33,108 +33,89 @@ import org.springframework.web.bind.annotation.RestController;
 public class PedidoController {
 
     @Autowired
-    PedidoService pedidoService;
+    private PedidoService pedidoService;
 
     @Autowired
-    ProdutoService produtoService;
+    private ProdutoService produtoService;
 
     @GetMapping("{id}")
-    public ResponseEntity<Pedido> findById(@PathVariable Long id) {
-        if (pedidoService.existsById(id)) {
-            return ResponseEntity.ok(pedidoService.findById(id).get());
-        } else {
-            return ResponseEntity.notFound().build();
-        }
+    public ResponseEntity<Pedido> buscarPedidoPorId(@PathVariable Long id) {
+        return pedidoService.findById(id)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
     }
 
     @GetMapping
-    public ResponseEntity<List<Pedido>> listarPedidos() {
-        if (pedidoService.listarPedidos().isEmpty()) {
-            return ResponseEntity.notFound().build();
-        } else {
-            return ResponseEntity.ok(pedidoService.listarPedidos());
-        }
+    public ResponseEntity<List<Pedido>> listarTodosPedidos() {
+        List<Pedido> pedidos = pedidoService.listarPedidos();
+        return pedidos.isEmpty() ? ResponseEntity.notFound().build() : ResponseEntity.ok(pedidos);
     }
 
     @GetMapping("/status/{status}")
-    public ResponseEntity<List<Pedido>> listarPorStatus(@PathVariable Pedido.Status status) {
-
-        if (pedidoService.listarPorStatus(status).isEmpty()) {
-            return ResponseEntity.notFound().build();
-        } else {
-            return ResponseEntity.ok(pedidoService.listarPorStatus(status));
-        }
+    public ResponseEntity<List<Pedido>> listarPedidosPorStatus(@PathVariable Pedido.Status status) {
+        List<Pedido> pedidos = pedidoService.listarPorStatus(status);
+        return pedidos.isEmpty() ? ResponseEntity.notFound().build() : ResponseEntity.ok(pedidos);
     }
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public Pedido adicionarPedido(@Valid @RequestBody PedidoRequest pedidoRequest) {
+    public Pedido criarPedido(@Valid @RequestBody PedidoRequest pedidoRequest) {
+        List<Long> idsProdutos = pedidoRequest.getProdutoId();
 
-        List<Long> ids = pedidoRequest.getProdutoId();
-
-        List<Long> idsNaoEncontrados = ids.stream()
+        List<Long> idsInvalidos = idsProdutos.stream()
                 .filter(id -> !produtoService.existsById(id))
                 .toList();
 
-        if (!idsNaoEncontrados.isEmpty()) {
-            throw new NoSuchElementException("Produtos não encontrados: " + idsNaoEncontrados);
+        if (!idsInvalidos.isEmpty()) {
+            throw new NoSuchElementException("Produtos não encontrados: " + idsInvalidos);
         }
 
-        Pedido pedido = new Pedido();
-
-        pedido.setDataAbertura(LocalDateTime.now());
-        pedido.setStatus(Pedido.Status.ABERTO);
-        pedido.setPrazo(pedido.getDataAbertura().plusMinutes(14));
-        pedido.setTelefone(pedidoRequest.getTelefone());
-
-        List<Produto> produtos = ids.stream()
+        List<Produto> produtos = idsProdutos.stream()
                 .map(id -> produtoService.findById(id).get())
                 .toList();
 
-        BigDecimal valorTotal = produtos.stream()
+        BigDecimal total = produtos.stream()
                 .map(Produto::getPreco)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-        pedido.setProdutos(produtos);
-        pedido.setValorTotal(valorTotal);
+        Pedido novoPedido = new Pedido();
+        novoPedido.setDataAbertura(LocalDateTime.now());
+        novoPedido.setPrazo(novoPedido.getDataAbertura().plusMinutes(14));
+        novoPedido.setTelefone(pedidoRequest.getTelefone());
+        novoPedido.setStatus(Pedido.Status.ABERTO);
+        novoPedido.setProdutos(produtos);
+        novoPedido.setValorTotal(total);
 
-        return pedidoService.salvarPedido(pedido);
+        return pedidoService.salvarPedido(novoPedido);
     }
 
     @DeleteMapping("{id}")
-    public ResponseEntity<Void> deletarPedido(@PathVariable Long id) {
-        if (pedidoService.existsById(id)) {
-            pedidoService.deletarPedido(id);
-            return ResponseEntity.noContent().build();
-        } else {
+    public ResponseEntity<Void> removerPedido(@PathVariable Long id) {
+        if (!pedidoService.existsById(id)) {
             return ResponseEntity.notFound().build();
         }
+        pedidoService.deletarPedido(id);
+        return ResponseEntity.noContent().build();
     }
 
     @PutMapping("{id}")
-    public ResponseEntity<Pedido> updatePedido(@PathVariable Long id,
-            @Valid @RequestBody Pedido pedido) {
-
-        if (pedidoService.existsById(id)) {
-            pedido.setId(id);
-            pedido = pedidoService.salvarPedido(pedido);
-            return ResponseEntity.ok(pedido);
-        } else {
+    public ResponseEntity<Pedido> atualizarPedido(@PathVariable Long id, @Valid @RequestBody Pedido pedido) {
+        if (!pedidoService.existsById(id)) {
             return ResponseEntity.notFound().build();
         }
+        pedido.setId(id);
+        return ResponseEntity.ok(pedidoService.salvarPedido(pedido));
     }
 
     @PutMapping("/status/{id}")
-    public ResponseEntity<Pedido> alterarStatus(@PathVariable Long id,
-            @RequestBody StatusRequest statusRequest) {
-
+    public ResponseEntity<Pedido> atualizarStatusPedido(@PathVariable Long id, @RequestBody StatusRequest statusRequest) {
         Pedido pedido = pedidoService.findById(id)
                 .orElseThrow(() -> new NoSuchElementException("Pedido com ID " + id + " não encontrado"));
-        
-        if (statusRequest.getStatus().equals(Pedido.Status.ENTREGUE)) { pedido.setDataFinalizacao(LocalDateTime.now()); }
 
-        pedido = pedidoService.alterarStatus(pedido, statusRequest.getStatus());
+        if (statusRequest.getStatus() == Pedido.Status.ENTREGUE) {
+            pedido.setDataFinalizacao(LocalDateTime.now());
+        }
 
-        return ResponseEntity.ok(pedido);
+        return ResponseEntity.ok(pedidoService.alterarStatus(pedido, statusRequest.getStatus()));
     }
 }
