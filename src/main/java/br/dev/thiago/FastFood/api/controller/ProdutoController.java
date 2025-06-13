@@ -43,7 +43,7 @@ public class ProdutoController {
     }
     
     @GetMapping("/cat/{categoria}")
-    public ResponseEntity<List<Produto>> findByCategoria(String categoria) {
+    public ResponseEntity<List<Produto>> findByCategoria(@PathVariable String categoria) {
         if (produtoService.listByCategoria(categoria).isEmpty()) {
             return ResponseEntity.notFound().build();
         } else {
